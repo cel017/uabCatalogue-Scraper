@@ -41,7 +41,7 @@ def scrape_all():
         courses = scrape_courses(links["subjects"], subjects.keys())
         dpath["courses.json"] = data_dir/"courses.json"
         with open(dpath["courses.json"], "w") as f:
-            json.dump({"secs_scraped": False, "data": [crs.__dict__ for crs in courses]}, f, indent=4)
+            json.dump({"secs_scraped": False, "data": [dict(crs) for crs in courses]}, f, indent=4)
     else:
         with open(dpath["courses.json"]) as f:
             print("Loading Courses From Local File...")
@@ -57,7 +57,8 @@ def scrape_all():
                 init_args = list(crs.values())
                 # builtin dtypes
                 std_args = init_args[:3]
-                comp_args_raw = [c for c in init_args[3:]]
+                # component args as list of dicts of attrs
+                comp_args_raw = init_args[3:]
                 # get list of objects for list of dict from json
                 comp_args = []
                 for comp_list in comp_args_raw:
@@ -74,7 +75,7 @@ def scrape_all():
         scrape_sections(links["subjects"], courses)
         dpath["courses.json"].unlink(missing_ok=False)
         with open(dpath["courses.json"],  "w") as f:
-            json.dump({"secs_scraped": True, "data": [crs.__dict__ for crs in courses]}, f, indent=4)
+            json.dump({"secs_scraped": True, "data": [dict(crs) for crs in courses]}, f, indent=4)
         print("All Sections Scraped.")
     else:
         print("Sections Found in Local File.")
