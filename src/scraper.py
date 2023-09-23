@@ -55,7 +55,6 @@ def scrape_all():
             courses = []
             for crs in courses_json["data"]:
                 init_args = list(crs.values())
-                print(init_args)
                 # builtin dtypes
                 std_args = init_args[:3]
                 comp_args_raw = [c for c in init_args[3:]]
