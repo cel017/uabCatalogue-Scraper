@@ -3,18 +3,22 @@ from course import *
 import re
 import json
 import requests
+from datetime import datetime
 from pathlib import Path
 from bs4 import BeautifulSoup, SoupStrainer
 
+# CONSTANTS
+REQUIRED_FILES = ("links.json",)
 
-# TODO -> command line args for required data
-def scrape_all():
+# FUNCTIONS
+def get_data():
+    # TODO <- command line args for required data
     data_dir = Path(__file__).parents[1]/"data"
     dpath = {}
     for path in data_dir.iterdir():
-        dpath[path.name] = path
+        if path.is_file(): dpath[path.name] = path
 
-    for f in ("links.json",):
+    for f in REQUIRED_FILES:
         assert f in dpath, f"{f} file missing from data directory"
         
     # read links from links.json file
@@ -35,13 +39,13 @@ def scrape_all():
     print(f"({len(subjects)}) Subjects Scraped.\n")
     
     # scrape courses    
-    secs_scraped = False   
     if "courses.json" not in dpath:
         print("Scraping Courses...")
         courses = scrape_courses(links["subjects"], subjects.keys())
         dpath["courses.json"] = data_dir/"courses.json"
         with open(dpath["courses.json"], "w") as f:
             json.dump({"secs_scraped": False, "data": [dict(crs) for crs in courses]}, f, indent=4)
+        secs_scraped = False
     else:
         with open(dpath["courses.json"]) as f:
             print("Loading Courses From Local File...")
@@ -49,29 +53,26 @@ def scrape_all():
         secs_scraped = courses_json["secs_scraped"]
         # assumes order is preserved (py3.7> dict) ->
         # might cause attr order issues if file is manipulated elsewhere
-        if secs_scraped:
-            courses = [Course(*crs.values()) for crs in courses_json["data"]]
-        else:
-            courses = []
-            for crs in courses_json["data"]:
-                init_args = list(crs.values())
-                # builtin dtypes
-                std_args = init_args[:3]
-                # component args as list of dicts of attrs
-                comp_args_raw = init_args[3:]
-                # get list of objects for list of dict from json
-                comp_args = []
-                for comp_list in comp_args_raw:
-                    comp_args.append([Component(*c.values()) for c in comp_list])
-                all_args = std_args+comp_args
-                courses.append(Course(*all_args))
-    print(f"({len(courses)}) Courses Scraped.\n")
+        courses = []
+        for crs in courses_json["data"]:
+            init_args = list(crs.values())
+            # builtin dtypes
+            std_args = init_args[:3]
+            # component args as list of dicts of attrs
+            comp_args_raw = init_args[3:]
+            # get list of objects for list of dict from json
+            comp_args = []
+            for comp_list in comp_args_raw:
+                comp_args.append([Component(*c.values()) for c in comp_list])
+            all_args = std_args+comp_args
+            courses.append(Course(*all_args))
+    print(f"({len(courses)}) Courses Scraped.")
     
     # scrape sections
     if not secs_scraped:
         # TODO <- Refactor to use a generator func for scrape sections;
         # save time on already scraped data in case of crashes
-        print("Scraping Sections...")
+        print("\nScraping Sections...")
         scrape_sections(links["subjects"], courses)
         dpath["courses.json"].unlink(missing_ok=False)
         with open(dpath["courses.json"],  "w") as f:
@@ -80,8 +81,7 @@ def scrape_all():
     else:
         print("Sections Found in Local File.")
 
-    # scrape finals
-    finals = get_finals_data(links["finals"])
+    return courses
 
 def scrape_subjects(url: str) -> dict[str: str]:
     '''gets a dict of all offered subject names with code keys
@@ -95,6 +95,7 @@ def scrape_subjects(url: str) -> dict[str: str]:
 
     subj_hrefs = BeautifulSoup(requests.get(url).text, "lxml", \
     parse_only=SoupStrainer(href=re.compile(r"^\/catalogue\/course\/"))).find_all()
+
     # remove [:18] 'course/catalogue/'
     subjects = {elem.get("href")[18:] : elem.text for elem in subj_hrefs}
     return subjects
@@ -140,21 +141,19 @@ def scrape_courses(url: str, subjects: list) -> list[Course]:
             else:
                 # no descr => div clas="alert..."
                 crs_descr=""
-            
             courses.append(Course(crs_code, crs_name, crs_descr, [], [], []))
             i+=1
-            
+
     return courses
 
 def scrape_sections(url: str, courses: list):
     for crs in courses:
         table_elems = BeautifulSoup(requests.get(f"{url}/{crs.code}").text, "lxml", \
         parse_only=SoupStrainer(class_="card-body")).find_all("table")
-
         for table in table_elems:
-            component_type = table.find_previous_sibling().text  # lecture/lab/seminar
+            # lecture/lab/seminar
+            component_type = table.find_previous_sibling().text
             table_data_tags = table.findChildren(attrs={"data-card-title": True})
-
             comp_list = []
             row_cnt = len(table_data_tags)//4  # cols = 4
             for row in range(row_cnt):
@@ -168,7 +167,8 @@ def scrape_sections(url: str, courses: list):
                     crs.labs.extend(comp_list)
                 case "Seminars":
                     crs.seminars.extend(comp_list)
-    return
+                case _:
+                    raise ValueError
 
 def get_finals_data(url: str):
     # gets the json file for finals schedule 
@@ -177,11 +177,19 @@ def get_finals_data(url: str):
     # 'https://www.ualberta.ca/registrar/examinations/exam-schedules/fall-winter-exam-schedule.html'
     return requests.get(url).json()["data"]
 
-def clear():
+def clear(backup):
     data_dir = Path(__file__).parents[1]/"data"
+    if backup:
+        backup_dir = data_dir/"backup"/f"{datetime.now().strftime('%Y_%m_%d')}"
+        backup_dir.mkdir(parents=True)
     for path in data_dir.iterdir():
-        if path.name == "links.json": continue
+        if path.name == "links.json" or path.is_dir():
+            continue
+        if backup:
+            dest = backup_dir/path.name
+            dest.write_text(path.read_text())
         path.unlink()
 
 if __name__ == "__main__":
-    scrape_all()
+    clear(backup = True)
+    get_data()

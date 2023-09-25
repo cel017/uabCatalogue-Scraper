@@ -15,6 +15,7 @@ class Course:
                 yield k, v
     
     def parse_descr(self):
+        # parse to get prereqs/coreqs
         pass
 
 class Component:
