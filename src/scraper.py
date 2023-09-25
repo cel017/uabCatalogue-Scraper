@@ -3,9 +3,10 @@ from course import *
 import re
 import json
 import requests
-from datetime import datetime
 from pathlib import Path
+from datetime import datetime
 from bs4 import BeautifulSoup, SoupStrainer
+
 
 # CONSTANTS
 REQUIRED_FILES = ("links.json",)
