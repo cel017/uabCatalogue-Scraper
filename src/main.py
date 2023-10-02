@@ -20,9 +20,10 @@ if __name__ == "__main__":
     # with components (lec/lab/sem)
     for course in scrape_courses(subjects):
         # <parse descr> #
-        # lec, lab, sem = scrape_sections(course.code)
+        component_list = scrape_sections(course.code)
         # <parse components> #
         db_writer.write_course(course)
+        db_writer.write_components(component_list, course)
 
     print(perf_counter()-st)
     db_writer.close_db()

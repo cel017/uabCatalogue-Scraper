@@ -17,8 +17,9 @@ class Course:
         pass
 
 class Component:
-    def __init__(self, component_type, capacity, duration, instructors):
+    def __init__(self, component_type, section, capacity, duration, instructors):
         self.component_type = component_type
+        self.section = section
         self.capacity = capacity
         self.duration = duration  
         self.instructors = instructors

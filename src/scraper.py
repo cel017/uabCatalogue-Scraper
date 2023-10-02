@@ -84,7 +84,7 @@ def scrape_sections(course_code):
         Course: sequence of Course objects with scraped sections
     '''
 
-    lec, lab, sem = [], [], []
+    component_list = []
     table_elems = BeautifulSoup(
         markup=requests.get(f"{LINKS['subjects']}/{course_code}").text,
         features="lxml",
@@ -92,23 +92,15 @@ def scrape_sections(course_code):
     
     for table in table_elems:
         if not table.find_previous_sibling(): continue
-        component_type = table.find_previous_sibling().text
+        component_type = table.find_previous_sibling().text[:3]
         table_data_tags = table.findChildren(attrs={"data-card-title": True})
-        comp_list = []
         row_cnt = len(table_data_tags)//4  # cols = 4
         for row in range(row_cnt):
             # get data and clean whitespace/newline chars  
             row_data = tuple(' '.join(table_data_tags[4*row+i].contents[1].text.split()) for i in range(4))
-            comp_list.append(Component(*row_data))
-        match component_type:
-            case "Lectures":
-                lec.extend(comp_list)
-            case "Labs":
-                lab.extend(comp_list)
-            case "Seminars":
-                sem.extend(comp_list)
-    
-    return lec, lab, sem
+            component_list.append(Component(component_type, *row_data))
+
+    return component_list
 
 def get_finals_data():
     # gets the json file for finals schedule 
