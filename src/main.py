@@ -10,20 +10,22 @@ if __name__ == "__main__":
     db_writer.create_tables()
     
     st = perf_counter()
+
     # write Subjects
     subjects = tuple(scrape_subjects())
     db_writer.write_subjects(subjects)
+
     print(perf_counter()-st)
-    
     st = perf_counter()
+    
     # iterate through courses and populate
-    # with components (lec/lab/sem)
+    # with sections (lec/lab/sem)
     for course in scrape_courses(subjects):
         # <parse descr> #
-        component_list = scrape_sections(course.code)
-        # <parse components> #
+        section_list = scrape_sections(course.code)
+        # <parse sections> #
         db_writer.write_course(course)
-        db_writer.write_components(component_list, course)
+        db_writer.write_sections(section_list, course)
 
     print(perf_counter()-st)
     db_writer.close_db()

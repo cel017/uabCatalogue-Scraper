@@ -31,13 +31,14 @@ class DatabaseWriter:
                             FOREIGN KEY (subject_code) REFERENCES Subjects (subject_code)
                             )''')
 
-        # Components
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS Components (
-                            component_type TEXT,
+        # sections
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS Sections (
+                            section_type TEXT,
                             course_code TEXT,
                             section TEXT,
                             capacity INT,
                             instructors TEXT, 
+                            duration TEXT,
                             PRIMARY KEY (course_code, section)
                             )''')
 
@@ -55,11 +56,11 @@ class DatabaseWriter:
         self.cursor.execute(query, (course.subj, course.number, course.name, course.descr))
         self.conn.commit()
     
-    def write_components(self, components_list: list, course: Course):
-        query = f'''INSERT INTO Components 
-                    (component_type, course_code, section, capacity, duration, instructors) 
-                    VALUES (?, ?, ?, ?, ?)'''
+    def write_sections(self, sections_list: list, course: Course):
+        query = f'''INSERT INTO Sections 
+                    (section_type, course_code, section, capacity, duration, instructors) 
+                    VALUES (?, ?, ?, ?, ?, ?)'''
         self.cursor.executemany(query, 
-                                [*((c.component_type, course.code , c.section, c.capacity, c.duration, c.instructors)
-                                    for c in components_list)])
+                                [*((c.section_type, course.code , c.section, c.capacity, c.duration, c.instructors)
+                                    for c in sections_list)])
         self.conn.commit()

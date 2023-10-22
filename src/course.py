@@ -16,9 +16,9 @@ class Course:
         # parse to get prereqs/coreqs
         pass
 
-class Component:
-    def __init__(self, component_type, section, capacity, duration, instructors):
-        self.component_type = component_type
+class Section:
+    def __init__(self, section_type, section, capacity, duration, instructors):
+        self.section_type = section_type
         self.section = section
         self.capacity = capacity
         self.duration = duration  
