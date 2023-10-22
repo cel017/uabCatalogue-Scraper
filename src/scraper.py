@@ -39,7 +39,8 @@ def scrape_courses(subjects: tuple):
     '''
 
     for subj_code, _ in subjects:
-        # strain cards ignoring future courses; get href to course page
+        # strain cards ignoring future offerings;
+        # get href to course page
         course_cards = BeautifulSoup(
             markup=requests.get(f"{LINKS['subjects']}/{subj_code}").text,
             features="lxml",
